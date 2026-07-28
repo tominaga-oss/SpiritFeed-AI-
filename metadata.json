@@ -1,5 +1,8 @@
 {
-  "name": "SpiritFeed AI - Spiritual Content Generator",
-  "description": "A comprehensive tool to generate high-performing spiritual blog posts and transform them into beautiful Instagram-ready JPEG visuals using Gemini AI.",
-  "requestFramePermissions": []
+  "name": "スピリチュアルブログ作成AI",
+  "description": "タイトルを入力するだけで、スピリチュアルなブログ記事の構成と画像を自動生成するツールです。",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

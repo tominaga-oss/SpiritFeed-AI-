@@ -1,0 +1,73 @@
+{
+  "entities": {
+    "Source": {
+      "title": "Knowledge Source",
+      "description": "Content used for generating new material",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "content": { "type": "string" },
+        "type": { "type": "string", "enum": ["text", "file", "instagram", "blog"] },
+        "createdAt": { "type": "number" },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "images": { "type": "array", "items": { "type": "string" } },
+            "url": { "type": "string" },
+            "username": { "type": "string" },
+            "author": { "type": "string" }
+          }
+        }
+      },
+      "required": ["id", "name", "content", "type", "createdAt"]
+    },
+    "Draft": {
+      "title": "Content Draft",
+      "description": "Saved generated blog patterns or finalized content",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "styleLabel": { "type": "string" },
+        "coverMainTitle": { "type": "string" },
+        "coverHookBox": { "type": "string" },
+        "coverPattern": { "type": "number" },
+        "body": { "type": "string" },
+        "bodyLayout": { "type": "string", "enum": ["horizontal", "vertical"] },
+        "accentColor": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "theme": { "type": "string" },
+        "brightness": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["id", "title", "body", "createdAt"]
+    },
+    "Guidelines": {
+      "title": "Brand Guidelines",
+      "description": "Rules and tone requirements for generation",
+      "type": "object",
+      "properties": {
+        "forbiddenWords": { "type": "array", "items": { "type": "string" } },
+        "recommendedWords": { "type": "array", "items": { "type": "string" } },
+        "structure": { "type": "string" },
+        "tone": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/sources/{sourceId}": {
+      "schema": "Source",
+      "description": "Shared knowledge base"
+    },
+    "/drafts/{draftId}": {
+      "schema": "Draft",
+      "description": "Shared saved drafts"
+    },
+    "/config/guidelines": {
+      "schema": "Guidelines",
+      "description": "Shared generation rules"
+    }
+  }
+}

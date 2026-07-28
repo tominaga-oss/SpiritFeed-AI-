@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useRef } from 'react';
 import { BlogContent } from '../types';
-import { Download, Copy, CheckCircle2, ChevronLeft, ChevronRight, Calendar, Layers, Loader2 } from 'lucide-react';
+import { Download, Copy, CheckCircle2, ChevronLeft, ChevronRight, Calendar, Layers, Loader2, Bookmark } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import JSZip from 'jszip';
 
@@ -21,6 +21,7 @@ const PreviewExport: React.FC<PreviewExportProps> = ({ content, imageUrl, onBack
   const cleanLine = (line: string) => line.trim().replace(/[、。]$/, "");
 
   const renderFormattedText = (text: string) => {
+    const isVertical = content.bodyLayout === 'vertical';
     const parts = text.split(/(\[\[.*?\]\])/g);
     return parts.map((part, i) => {
       if (part.startsWith('[[') && part.endsWith(']]')) {
@@ -28,7 +29,11 @@ const PreviewExport: React.FC<PreviewExportProps> = ({ content, imageUrl, onBack
         return (
           <span key={i} className="relative inline-block px-1">
             <span 
-              className="absolute left-0 bottom-0.5 w-full h-2 z-0 opacity-40 rounded-sm"
+              className={`absolute z-0 opacity-40 rounded-sm ${
+                isVertical 
+                  ? 'top-0 left-0 h-full w-2' 
+                  : 'left-0 bottom-0.5 w-full h-2'
+              }`}
               style={{ backgroundColor: content.accentColor }}
             />
             <span className="relative z-10" style={{ color: content.accentColor }}>{cleanLine(keyword)}</span>
@@ -39,9 +44,36 @@ const PreviewExport: React.FC<PreviewExportProps> = ({ content, imageUrl, onBack
     });
   };
 
+  const getTitleStyle = (index: number) => {
+    const style = content.titleStyle || {
+      fontSize: 40,
+      fontFamily: 'Shippori Mincho',
+      effect: 'shadow',
+      color: '#ffffff'
+    };
+
+    let textShadow = '';
+    if (style.effect === 'shadow') textShadow = '2px 2px 8px rgba(0,0,0,0.9)';
+    if (style.effect === 'outline') textShadow = '-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000';
+    if (style.effect === 'neon') textShadow = `0 0 5px #fff, 0 0 10px #fff, 0 0 20px ${content.accentColor}, 0 0 30px ${content.accentColor}`;
+
+    const isAccentLine = (content.coverPattern === 1 && index % 2 !== 0) || 
+                         (content.coverPattern === 2 && index === 1) ||
+                         (content.coverPattern === 4 && index % 2 !== 0);
+
+    return {
+      fontSize: `${style.fontSize}px`,
+      fontFamily: style.fontFamily,
+      color: isAccentLine ? content.accentColor : style.color,
+      textShadow: textShadow,
+      lineHeight: '1.2'
+    };
+  };
+
   const allContentSlides = useMemo(() => {
     const segments = content.body.split(/\n\n+/).filter(p => p.trim().length > 0);
-    return segments.slice(0, 19);
+    // Allow up to 30 slides for body content
+    return segments.slice(0, 30);
   }, [content.body]);
 
   const totalSlides = 1 + allContentSlides.length;
@@ -170,19 +202,19 @@ const PreviewExport: React.FC<PreviewExportProps> = ({ content, imageUrl, onBack
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-12 items-start justify-center">
+      <div className="flex flex-col lg:flex-row gap-8 items-center lg:items-start justify-center">
         
         {/* Instagram Canvas Container */}
-        <div className="relative group">
+        <div className="relative w-full max-w-[400px]">
           <div 
             ref={slideRef}
-            className="relative shrink-0 mx-auto lg:mx-0 shadow-2xl rounded-lg overflow-hidden bg-black"
-            style={{ width: '400px', height: '500px' }}
+            className="relative shrink-0 mx-auto shadow-2xl rounded-lg overflow-hidden bg-black"
+            style={{ width: '100%', aspectRatio: '4/5' }}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           >
             <div className="relative w-full h-full overflow-hidden">
-              <img src={imageUrl} alt="Background" className="absolute inset-0 w-full h-full object-cover opacity-60" />
+              <img src={imageUrl} alt="Background" className="absolute inset-0 w-full h-full object-cover object-center opacity-60" />
               <div className="absolute inset-0 bg-black/20" />
               
               <div className="absolute inset-0 flex flex-col items-center justify-center p-10">
@@ -191,50 +223,35 @@ const PreviewExport: React.FC<PreviewExportProps> = ({ content, imageUrl, onBack
                 {activeSlide === 0 && (
                   <div className="w-full h-full relative flex items-center justify-center">
                     {content.coverPattern === 1 && (
-                      <>
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2">
-                          <div className="bg-white/95 border-l-8 px-3 py-10 shadow-2xl" style={{ borderColor: content.accentColor }}>
-                            <p className="[writing-mode:vertical-rl] text-slate-900 font-black tracking-[0.4em] text-xl uppercase">
-                              {cleanLine(content.coverHookBox)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="ml-24 text-left">
-                          <h2 className="text-4xl font-black text-white leading-tight drop-shadow-2xl font-serif">
-                            {content.coverMainTitle.split('\n').map((line, i) => (
-                              <div key={i} style={{ color: i % 2 !== 0 ? content.accentColor : 'white' }}>{cleanLine(line)}</div>
-                            ))}
-                          </h2>
-                        </div>
-                      </>
+                      <div className="text-center w-full">
+                        <h2 className="font-black leading-tight drop-shadow-2xl text-center w-full" style={{ ...getTitleStyle(0), color: undefined }}>
+                          {content.coverMainTitle.split('\n').map((line, i) => (
+                            <div key={i} className="text-center w-full" style={getTitleStyle(i)}>{cleanLine(line)}</div>
+                          ))}
+                        </h2>
+                      </div>
                     )}
 
                     {content.coverPattern === 2 && (
-                      <div className="flex flex-col items-center text-center space-y-10">
-                        <div className="border-t border-b border-white/40 py-2 px-10">
-                          <p className="text-white font-black text-lg tracking-[0.3em]">【 {cleanLine(content.coverHookBox)} 】</p>
-                        </div>
-                        <h2 className="text-4xl font-black text-white leading-snug drop-shadow-2xl font-serif">
+                      <div className="flex flex-col items-center text-center space-y-10 w-full">
+                        <h2 className="font-black leading-snug drop-shadow-2xl text-center w-full" style={{ ...getTitleStyle(0), color: undefined }}>
                           {content.coverMainTitle.split('\n').map((line, i) => (
-                            <div key={i} style={{ color: i === 1 ? content.accentColor : 'white' }}>{cleanLine(line)}</div>
+                            <div key={i} className="text-center w-full" style={getTitleStyle(i)}>{cleanLine(line)}</div>
                           ))}
                         </h2>
                       </div>
                     )}
 
                     {content.coverPattern === 3 && (
-                      <div className="w-full h-full flex items-center justify-between">
-                        <div className="flex flex-col items-center space-y-4">
-                          <div className="text-white/80 border-b border-white/30 pb-3 text-center">
-                             <Calendar className="w-8 h-8 mx-auto mb-1" />
-                             <p className="text-3xl font-black">{new Date().getMonth() + 1}月</p>
-                          </div>
-                          <p className="[writing-mode:vertical-rl] font-black text-xl tracking-[0.4em]" style={{ color: content.accentColor }}>{cleanLine(content.coverHookBox)}</p>
+                      <div className="w-full h-full flex flex-col items-center justify-center space-y-6">
+                        <div className="text-white/80 border-b border-white/30 pb-3 text-center">
+                           <Calendar className="w-8 h-8 mx-auto mb-1" />
+                           <p className="text-3xl font-black">{new Date().getMonth() + 1}月</p>
                         </div>
-                        <div className="text-right flex-1 pr-4">
-                          <h2 className="text-4xl font-black text-white leading-tight drop-shadow-2xl font-serif">
+                        <div className="text-center w-full">
+                          <h2 className="font-black leading-tight drop-shadow-2xl text-center w-full" style={{ ...getTitleStyle(0), color: undefined }}>
                              {content.coverMainTitle.split('\n').map((line, i) => (
-                               <div key={i}>{cleanLine(line)}</div>
+                               <div key={i} className="text-center w-full" style={getTitleStyle(i)}>{cleanLine(line)}</div>
                              ))}
                           </h2>
                         </div>
@@ -243,14 +260,11 @@ const PreviewExport: React.FC<PreviewExportProps> = ({ content, imageUrl, onBack
 
                     {content.coverPattern === 4 && (
                       <div className="w-full h-full flex flex-col justify-end items-center pb-10">
-                        <h2 className="text-5xl font-black text-white leading-none tracking-tighter drop-shadow-2xl font-serif mb-10 text-center">
+                        <h2 className="font-black leading-none tracking-tighter drop-shadow-2xl mb-10 text-center w-full" style={{ ...getTitleStyle(0), color: undefined }}>
                            {content.coverMainTitle.split('\n').map((line, i) => (
-                             <div key={i} style={{ color: i % 2 !== 0 ? content.accentColor : 'white' }}>{cleanLine(line)}</div>
+                             <div key={i} className="text-center w-full" style={getTitleStyle(i)}>{cleanLine(line)}</div>
                            ))}
                         </h2>
-                        <div className="text-black font-black px-6 py-2.5 text-xl shadow-2xl rounded-sm" style={{ backgroundColor: content.accentColor }}>
-                          {cleanLine(content.coverHookBox)}
-                        </div>
                       </div>
                     )}
                   </div>
@@ -262,17 +276,17 @@ const PreviewExport: React.FC<PreviewExportProps> = ({ content, imageUrl, onBack
                     <div 
                       className={`w-full flex flex-col items-center ${content.bodyLayout === 'vertical' ? '[writing-mode:vertical-rl] h-full justify-center' : 'justify-center'}`}
                     >
-                      {activeSlide === 1 && (
+                      {/* activeSlide === 1 && (
                         <div className={`${content.bodyLayout === 'vertical' ? 'ml-10' : 'mb-8'}`}>
                            <p className="text-white/60 text-xs font-black tracking-widest border border-white/30 px-3 py-1 rounded-full uppercase">Must Read</p>
                         </div>
-                      )}
+                      ) */}
                       
                       <div className={`${content.bodyLayout === 'vertical' ? 'space-x-reverse space-x-6' : 'space-y-4 text-center'} text-white`}>
                         {allContentSlides[activeSlide - 1].split('\n').map((line, i) => (
                           <p 
                             key={i} 
-                            className={`font-black font-serif leading-loose tracking-wider drop-shadow-lg ${activeSlide === 1 ? 'text-2xl' : 'text-xl'}`}
+                            className="font-black font-serif leading-loose tracking-wider drop-shadow-lg text-xl"
                           >
                             {renderFormattedText(line)}
                           </p>

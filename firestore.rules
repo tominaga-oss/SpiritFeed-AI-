@@ -1,0 +1,67 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isValidSource(data) {
+      return data.keys().hasAll(['id', 'name', 'content', 'type', 'createdAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 200
+        && data.content is string && data.content.size() <= 100000
+        && data.type is string && data.type in ['text', 'file', 'instagram', 'blog']
+        && data.createdAt is number;
+    }
+
+    function isValidDraft(data) {
+      return data.keys().hasAll(['id', 'title', 'body', 'createdAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.title is string && data.title.size() <= 500
+        && data.body is string && data.body.size() <= 100000
+        && data.createdAt is number;
+    }
+
+    function isValidGuidelines(data) {
+      return data.forbiddenWords is list
+        && data.recommendedWords is list
+        && data.structure is string
+        && data.tone is string;
+    }
+
+    // --- Shared Knowledge Sources ---
+    match /sources/{sourceId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidId(sourceId);
+      allow delete: if isSignedIn();
+    }
+
+    // --- Shared Drafts ---
+    match /drafts/{draftId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidId(draftId);
+      allow delete: if isSignedIn();
+    }
+
+    // --- Shared Config/Guidelines ---
+    match /config/{configId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isValidId(configId);
+    }
+  }
+}
